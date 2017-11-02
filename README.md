@@ -11,3 +11,9 @@ http://omokute.blogspot.ca/2012/06/emulation-basics-write-your-own-chip-8.html
 http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#4.0
 
 http://emulator101.com/
+
+http://www.multigesture.net/wp-content/uploads/mirror/zenogais/FunctionPointers.htm
+
+http://emubook.emulation64.com/
+
+http://emubook.emulation64.com/memory.htm#High/low%20level%20emulation

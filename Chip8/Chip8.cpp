@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+unsigned short opcode; // Current opcode
+unsigned short pc; // Program counter
+void(*Chip8Table[17])();
+void(*Chip8Arithmetic[16])();
 
 unsigned char chip8_fontset[80] =
 {
@@ -69,6 +73,47 @@ void Chip8::init() {
 
 	srand(time(NULL));
 }
+
+void Chip8::fetch()
+{
+	opcode = memory[pc] << 8 | memory[pc + 1];
+	pc += 2;
+}
+
+void Chip8::execute()
+{
+	//===================================
+	// Fetch Next Opcode And Execute It
+	//===================================
+	fetch();
+	Chip8Table[(opcode & 0xF000) >> 12]();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void cpuNULL()
+{
+	// Do Nothing
+}
+void cpuARITHMETIC() {
+	Chip8Arithmetic[(opcode & 0x000F)]();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+
+void(*Chip8Table[17]) =
+{
+	cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL,
+	cpuARITHMETIC, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL,
+	cpuNULL
+};
+
+void(*Chip8Arithmetic[16]) =
+{
+	cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL,
+	cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL, cpuNULL
+};
+
 
 void Chip8::emulateCycle() {
 

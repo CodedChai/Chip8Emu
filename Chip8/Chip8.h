@@ -6,6 +6,8 @@ public:
 	bool drawFlag;
 	bool playBeep;
 
+	void fetch();
+	void execute();
 	void emulateCycle();
 	void debugRender();
 	bool loadApplication(const char * filename);
@@ -15,8 +17,8 @@ public:
 	unsigned char  key[16];
 
 private:
-	unsigned short pc;				// Program counter
-	unsigned short opcode;			// Current opcode
+	//unsigned short pc;				// Program counter
+	//unsigned short opcode;			// Current opcode
 	unsigned short I;				// Index register
 	unsigned short sp;				// Stack pointer
 
@@ -27,5 +29,6 @@ private:
 	unsigned char  delay_timer;		// Delay timer
 	unsigned char  sound_timer;		// Sound timer		
 
-	void init();
+	void init(); 
+
 };
