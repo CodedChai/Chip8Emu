@@ -71,6 +71,7 @@ void Chip8::emulateCycle() {
 
 	// Fetch opcode (since opcodes are 2 bytes must grab 2 bytes)
 	opcode = memory[pc] << 8 | memory[pc + 1];
+	printf("opcode%X\n", opcode);
 
 	// Process opcode
 	// Check first hex value then so on
@@ -174,12 +175,14 @@ void Chip8::emulateCycle() {
 		// Begin case 0x8XY2
 		case 0x0002: // 0x8XY2: Sets V[X] to V[X] and V[Y]
 			V[(opcode & 0x0F00) >> 8] &= V[(opcode & 0x00F0) >> 4];
+			pc += 2;
 			break;
 		// End case 0x8XY2
 
 		// Begin case 0x8XY3
 		case 0x0003: // 0x8XY3: Sets V[X] to V[X] xor V[Y]
 			V[(opcode & 0x0F00) >> 8] ^= V[(opcode & 0x00F0) >> 4];
+			pc += 2;
 			break;
 		// End case 0x8XY3
 
@@ -384,8 +387,113 @@ void Chip8::emulateCycle() {
 			pc += 2;
 			break;
 		// End case FX29
+
+		// Begin case FX33
+		case 0x0033: // FX33: Stores the binary coded decimal representation of V[X] at the address I, I+1 and I+2
+			memory[I] = V[(opcode & 0x0F00) >> 8] / 100;
+			memory[I + 1] = (V[(opcode & 0x0F00) >> 8] / 10) % 10;
+			memory[I + 2] = (V[(opcode & 0x0F00) >> 8] % 100) % 10;
+			pc += 2;
+			break;
+		// End case FX33
+
+		// Begin case FX55
+		case 0x0055: // FX55: Stores V[0] to V[X] in memory starting at address I
+			for (int i = 0; i <= ((opcode & 0x0F00) >> 8); ++i)
+				memory[I + 1] = V[i];
+
+			// On the original interpreter, when the operation is done, I = I + X + 1.
+			I += ((opcode & 0x0F00) >> 8) + 1;
+			pc += 2;
+			break;
+		// End case FX55
+
+		// Begin case FX65
+		case 0x0065: // FX65: Fills V[0] to V[X] with value from memory starting at address I
+			for (int i = 0; i <= ((opcode & 0x0F00) >> 8); ++i)
+				V[i] = memory[I + i];
+
+			// On the original interpreter, when the operation is done, I = I + X + 1.
+			I += ((opcode & 0x0F00) >> 8) + 1;
+			pc += 2;
+			break;
+		// End case FX65
+		default:
+			printf("Unknown opcode [0xF000]: 0x%X\n", opcode);
 		}
+		break;
 	// End case 0xF000
+	default:
+		printf("Unknown opcode 0x%X\n", opcode);
 	}
 
+	// Update timers
+	if (delay_timer > 0)
+		--delay_timer;
+	if (sound_timer > 0) {
+		if (sound_timer == 1)
+			printf("BEEP!!\n");
+		--sound_timer;
+	}
+}
+
+// Render in the console to help find bugs
+void Chip8::debugRender() {
+	// Draw
+	for (int y = 0; y < 32; ++y) {
+		for (int x = 0; x < 64; ++x) {
+			if (pixels[(y * 64) + x] == 0)
+				printf("O");
+			else
+				printf(" ");
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+bool Chip8::loadApplication(const char * filename) {
+	init();
+	printf("Loading: %s\n", filename);
+
+	// Open file
+	FILE * pFile = fopen(filename, "rb");
+	if (pFile == NULL) {
+		fputs("File error", stderr);
+		return false;
+	}
+
+	// Check file size
+	fseek(pFile, 0, SEEK_END);
+	long lSize = ftell(pFile);
+	rewind(pFile);
+	printf("Filesize: %d\n", (int)lSize);
+
+	// Allocate memory to contain whole file
+	char * buffer = (char*)malloc(sizeof(char) * lSize);
+	if (buffer == NULL) {
+		fputs("Memory error", stderr);
+		return false;
+	}
+
+	// Copy the file into the buffer
+	size_t result = fread(buffer, 1, lSize, pFile);
+	if (result != lSize) {
+		fputs("Reading error", stderr);
+		return false;
+	}
+
+	// Copy buffer to Chip8 memory
+	if ((4096 - 512) > lSize) {
+		for (int i = 0; i < lSize; ++i)
+			memory[i + 512] = buffer[i];
+	}
+	else
+		printf("Error: ROM too big for memory");
+
+	// Close file, free buffer
+	fclose(pFile);
+	free(buffer);
+
+	return true;
 }
