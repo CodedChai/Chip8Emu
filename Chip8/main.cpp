@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <GL\glut.h>
 #include "Chip8.h"
+#include <iostream>
+#include <windows.h> // WinApi header 
+#include <thread>         // std::thread
 
 // Display size
 #define SCREEN_WIDTH 64
@@ -21,6 +24,8 @@ void keyboardDown(unsigned char key, int x, int y);
 typedef unsigned __int8 u8;
 u8 screenData[SCREEN_HEIGHT][SCREEN_WIDTH][3];
 void setupTexture();
+
+void playAudio();
 
 int main(int argc, char **argv)
 {
@@ -103,6 +108,10 @@ void updateTexture(const Chip8& c8) {
 	glEnd();
 }
 
+void playAudio() {
+	Beep(400, 500); // 400 hertz (C5) for 500 milliseconds    
+}
+
 void display() {
 	interpreter.emulateCycle();
 
@@ -118,6 +127,12 @@ void display() {
 
 		// Finished processing frame
 		interpreter.drawFlag = false;
+	}
+
+	if (interpreter.playBeep) {
+		interpreter.playBeep = false;
+		std::thread t1(playAudio);
+		t1.detach();
 	}
 }
 

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+
 unsigned char chip8_fontset[80] =
 {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -64,6 +65,8 @@ void Chip8::init() {
 	// Clear screen once
 	drawFlag = true;
 
+	playBeep = false;
+
 	srand(time(NULL));
 }
 
@@ -71,7 +74,7 @@ void Chip8::emulateCycle() {
 
 	// Fetch opcode (since opcodes are 2 bytes must grab 2 bytes)
 	opcode = memory[pc] << 8 | memory[pc + 1];
-	printf("opcode%X\n", opcode);
+	// printf("opcode%X\n", opcode);
 
 	// Process opcode
 	// Check first hex value then so on
@@ -431,8 +434,9 @@ void Chip8::emulateCycle() {
 	if (delay_timer > 0)
 		--delay_timer;
 	if (sound_timer > 0) {
-		if (sound_timer == 1)
-			printf("BEEP!!\n");
+		if (sound_timer == 1) {
+			playBeep = true;
+		}
 		--sound_timer;
 	}
 }

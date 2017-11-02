@@ -4,6 +4,7 @@ public:
 	~Chip8();
 
 	bool drawFlag;
+	bool playBeep;
 
 	void emulateCycle();
 	void debugRender();
