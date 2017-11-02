@@ -155,8 +155,237 @@ void Chip8::emulateCycle() {
 
 	// Begin case 0x8000
 	case 0x8000:
+		switch (opcode & 0x000F) {
 
+		// Begin case 0x8XY0
+		case 0x000: // 0x8XY0: Sets V[X] to the value of V[Y]
+			V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4];
+			pc += 2;
+			break;
+		// End case 0x8XY0
+
+		// Begin case 0x8XY1
+		case 0x0001: // 0x8XY1: Sets V[X] to V[X] or V[Y]
+			V[(opcode & 0x0F00) >> 8] |= V[(opcode & 0x00F0) >> 4];
+			pc += 2;
+			break;
+		// End case 0x8XY1
+
+		// Begin case 0x8XY2
+		case 0x0002: // 0x8XY2: Sets V[X] to V[X] and V[Y]
+			V[(opcode & 0x0F00) >> 8] &= V[(opcode & 0x00F0) >> 4];
+			break;
+		// End case 0x8XY2
+
+		// Begin case 0x8XY3
+		case 0x0003: // 0x8XY3: Sets V[X] to V[X] xor V[Y]
+			V[(opcode & 0x0F00) >> 8] ^= V[(opcode & 0x00F0) >> 4];
+			break;
+		// End case 0x8XY3
+
+		// Begin case 0x8XY4
+		case 0x0004: // 0x8XY4: Adds V[Y] to V[X]. V[F] is set to 1 when there's a carry and to 0 when there isn't					
+			if (V[(opcode & 0x00F0) >> 4] > (0xFF - V[(opcode & 0x0F00) >> 8])) // Check for carry
+				V[0xF] = 1; // Set that there is a carry
+			else
+				V[0xF] = 0; // Set that there isn't a carry
+			V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4]; // V[X] = V[X] + V[Y]
+			pc += 2;
+			break;
+		// End case 0x8XY4
+
+		// Begin case 0x8XY5
+		case 0x0005: // 0x8XY5: V[Y] is subtracted from V[X]. V[F] is set to 0 when there's a borrow and 1 when there isn't
+			if (V[(opcode & 0x00F0) >> 4] > V[(opcode & 0x0F00) >> 8]) // Check for borrow
+				V[0xF] = 0; // Set that there is a borrow
+			else
+				V[0xF] = 1; // Set that there isn't a borrow
+			V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4]; // V[X] = V[X] - V[Y]
+			pc += 2;
+			break;
+		// End case 0x8XY5
+
+		// Begin case 0x8XY6
+		case 0x0006: // 0x8XY6: Shifts V[X] right by one. V[F] is set to the value of the least significant bit of V[X] before the shift
+			V[0xF] = V[(opcode & 0x0F00) >> 8] & 0x1; // Set the LSB
+			V[(opcode & 0x0F00) >> 8] >>= 1;
+			pc += 2;
+			break;
+		// End case 0x8XY6
+
+		// Begin case 0x8XY7
+		case 0x0007: // 0x8XY7: Sets V[X] to V[Y] minus V[X]. V[F] is set to 0 when there's a borrow and 1 when there isn't
+			if (V[(opcode & 0x0F00) >> 8] > V[(opcode & 0x00F0) >> 4])	// Check for borrow
+				V[0xF] = 0; // Set that there is a borrow
+			else
+				V[0xF] = 1;	// Set that there ins't a borrow
+			V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8]; // V[X] = V[Y] - V[X]
+			pc += 2;
+			break;
+		// End case 0x8XY7
+
+		// Begin case 0x8XYE
+		case 0x000E: // 0x8XYE: Shifts V[X] left by one. V[F] is set to the value of the most significant bit before shift.
+			V[0xF] = V[(opcode & 0x0F00) >> 8] >> 7; // Set V[F] to MSB
+			V[(opcode & 0x0F00) >> 7] <<= 1;
+			pc += 2;
+			break;
+		// End case 0x8XYE
+			
+		default:
+			printf("Unknown opcode [0x8000]: 0x%X\n", opcode);
+		}
 		break;
+	// End case 0x8000
+
+	// Begin case 0x9000
+	case 0x9000: // 0x9XY0: Skips the next instruction if V[X] doesn't equal V[Y]
+		if (V[(opcode & 0x0F00) >> 8] != V[(opcode & 0x00F0) >> 4])
+			pc += 4;
+		else
+			pc += 2;
+		break;
+	// End case 0x9000
+
+	// Begin case 0xA000
+	case 0xA000: // ANNN: Sets I to the address of NNN
+		I = opcode & 0x0FFF;
+		pc += 2;
+		break;
+	// End case 0xA000
+
+	// Begin case 0xB000
+	case 0xB000: // BNNN: Jumps to the address NNN plus V[0]
+		pc = (opcode & 0x0FFF) + V[0];
+		break;
+	// End case 0xB000
+
+	// Begin case 0xC000
+	case 0xC000: // CXNN: Sets V[X] to a random number and NN
+		V[(opcode & 0x0F00) >> 8] = (rand() % 0xFF) & (opcode & 0x00FF);
+		pc += 2;
+		break;
+	// End case 0xC000
+
+	// Begin case 0xD000
+	case 0xD000: /* DXYN: Draws a sprite at the coordinates(V[X], V[Y]) that has a width of 8 pixels and a height of N pixels.
+					Each ros of 8 pixels is read as bit-coded starting from memory location I
+					I value doesn't change after the execution of this instruction
+					VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if it 
+					doesn't happen
+				 */
+	{
+		unsigned short x = V[(opcode & 0x0F00) >> 8];
+		unsigned short y = V[(opcode & 0x00F0) >> 4];
+		unsigned short height = opcode & 0x000F;
+		unsigned short pixel;
+
+		V[0xF] = 0;
+		for (int yline = 0; yline < height; yline++) {
+			pixel = memory[I + yline];
+			for (int xline = 0; xline < 8; xline++) {
+				if ((pixel & (0x80 >> xline)) != 0) {
+					if (pixels[(x + xline + ((y + yline) * 64))] == 1) {
+						V[0xF] = 1;
+					}
+					pixels[x + xline + ((y + yline) * 64)] ^= 1;
+				}
+			}
+		}
+		drawFlag = true;
+		pc += 2;
+	}
+	break;
+	// End case 0xD000
+
+	// Begin case 0xE000
+	case 0xE000:
+		switch (opcode & 0x00FF) {
+		// Begin case 0xEX9E
+		case 0x009E: // EX9E: Skips the next instruction if the key stored in V[X] is pressed
+			if (key[V[(opcode & 0x0F00) >> 8]] != 0)
+				pc += 4;
+			else
+				pc += 2;
+			break;
+		// End case 0xEX9E
+
+		// Begin case 0xEXA1
+		case 0x00A1: // EXA1: Skips the next instruction if the key stored in V[X] isn't pressed
+			if (key[V[(opcode & 0x0F00) >> 8]] == 0)
+				pc += 4;
+			else
+				pc += 2;
+			break;
+		// End case 0xEXA1
+		default:
+			printf("Unknown opcode [0xE000]: 0x%X\n", opcode);
+		}
+		break;
+	// End case 0xE000
+	// Begin case 0xF000
+	case 0xF000:
+		switch (opcode & 0x00FF) {
+		// Begin case FX07
+		case 0x0007: // FX07: Sets V[X] to the value of the delay timer
+			V[(opcode & 0x0F00) >> 8] = delay_timer;
+			pc += 2;
+			break;
+		// End case FX07
+
+		// Begin case FX0A
+		case 0x000A: // FX0A: A key press is awaited, and then stored in V[X]
+		{
+			bool keyPress = false;
+			for (int i = 0; i < 16; ++i) {
+				if (key[i] != 0) {
+					V[(opcode & 0x0F00) >> 8] = i;
+					keyPress = true;
+				}
+			}
+
+			// If we didn't get a keypress skip this cycle and try again
+			if (!keyPress)
+				return;
+
+			pc += 2;
+		}
+		break;
+		// End case FX0A
+		
+		// Begin case FX15
+		case 0x0015: // FX15: Sets the delay timer to V[X]
+			delay_timer = V[(opcode & 0x0F00) >> 8];
+			pc += 2;
+			break;
+		// End case FX15
+
+		// Begin case FX18
+		case 0x0018: // FX18: Sets the sound timer to V[X]
+			sound_timer = V[(opcode & 0x0F00) >> 8];
+			pc += 2;
+			break;
+		// End case FX18
+
+		// Begin case FX1E
+		case 0x001E: // FX1E: Adds V[X] to I
+			if (I + V[(opcode & 0x0F00) >> 8] > 0xFFF) // V[F] is set to 1 when range overflow and 0 when it isn't
+				V[0xF] = 1;
+			else
+				V[0xF] = 0;
+			I += V[(opcode & 0x0F00) >> 8];
+			pc += 2;
+			break;
+		// End case FX1E
+
+		// Begin case FX29
+		case 0x0029: // FX29: Sets I to the location of the sprite for the character in V[X]. Characters 0-F (in hexadecimal) are represented by a 4x5 font
+			I = V[(opcode & 0x0F00) >> 8] * 0x5;
+			pc += 2;
+			break;
+		// End case FX29
+		}
+	// End case 0xF000
 	}
 
 }
