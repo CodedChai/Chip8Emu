@@ -114,7 +114,7 @@ void playAudio() {
 
 void display() {
 	interpreter.emulateCycle();
-
+	//interpreter.execute();
 	if (interpreter.drawFlag) {
 		// Clear framebuffer
 		glClear(GL_COLOR_BUFFER_BIT);
